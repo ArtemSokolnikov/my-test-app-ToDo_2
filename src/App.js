@@ -1,93 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
+import TaskForm from "./components/TaskForm";
+import TaskList from "./components/TaskList";
 
 const App = () => {
-    const targetWord = 'HELLO';
-    const [guess, setGuess] = useState('');
-    const [attempts, setAttempts] = useState(0);
-    const [keyboard, setKeyboard] = useState({});
+    const initialTasks = JSON.parse(localStorage.getItem('tasks'));
+    const [tasks, setTasks] = useState(initialTasks||[]);
 
-    useEffect(() => {
-        setKeyboard(getInitialKeyboardState());
-    }, []);
-
-    const getInitialKeyboardState = () => {
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        return alphabet.split('').reduce((keyboardState, letter) => {
-            keyboardState[letter] = false;
-            return keyboardState;
-        }, {});
-    };
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
+    const handleTaskAdd = (title) => {
+        const newTask = {
+            id: Date.now(),
+            title: title,
+            completed: false,
         };
+        setTasks((prevTasks) => [...prevTasks, newTask]);
+    };
+
+    const handleTaskToggle = (id) => {
+        setTasks((prevTasks) =>
+            prevTasks.map((task) => {
+                if (task.id === id) {
+                    return {...task, completed: !task.completed};
+                }
+                return task;
+            })
+        );
+    };
+
+    const handleTaskRemove = ()=>{
+        setTasks(prevTasks =>prevTasks.slice(0,-1))
+    }
+
+    const handleTaskItemRemove = (id) => {
+        setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+    };
+
+    useEffect(() => {
+        const storedTasks = localStorage.getItem('tasks');
+        console.log('storedTasks',storedTasks)
+        if (storedTasks) {
+            setTasks(JSON.parse(storedTasks));
+        }
     }, []);
 
-    const handleKeyDown = (event) => {
-        const { key } = event;
-        if (key.match(/^[a-zA-Z]$/)) {
-            setGuess((prevGuess) => prevGuess + key.toUpperCase());
-            setKeyboard((prevKeyboard) => ({
-                ...prevKeyboard,
-                [key.toUpperCase()]: true,
-            }));
-        }
-    };
-
-    const handleGuess = (event) => {
-        event.preventDefault();
-        if (guess.length !== 5) {
-            alert('Введите слово из 5 букв');
-            return;
-        }
-        setAttempts(attempts + 1);
-        setGuess('');
-        setKeyboard(getInitialKeyboardState());
-    };
-
-    const getLetterColor = (letter) => {
-        if (targetWord.includes(letter)) {
-            return 'green';
-        } else {
-            return 'red';
-        }
-    };
-
-
+    useEffect(() => {
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }, [tasks]);
 
     return (
         <div>
-            <h1>Wordle</h1>
-            <p>Попытка: {attempts}</p>
-            <p>Введите слово из 5 букв:</p>
-            <form onSubmit={handleGuess}>
-                <input
-                    type="text"
-                    value={guess}
-                    maxLength={5}
-                    onChange={(e) => setGuess(e.target.value.toUpperCase())}
-                />
-                <button type="submit">Проверить</button>
-            </form>
-            <div>
-                {Array.from(guess).map((letter, index) => (
-                    <span key={index} style={{ color: getLetterColor(letter) }}>
-            {letter}
-          </span>
-                ))}
-            </div>
-            <div>
-                {Object.keys(keyboard).map((letter) => (
-                    <span
-                        key={letter}
-                        style={{ color: keyboard[letter] ? 'blue' : 'black' }}
-                    >
-            {letter}
-          </span>
-                ))}
-            </div>
+            <h1>ToDo</h1>
+            <TaskForm handleTaskAdd={handleTaskAdd} handleTaskRemove = {handleTaskRemove} />
+            <TaskList tasks={tasks} handleTaskToggle={handleTaskToggle} handleTaskItemRemove={handleTaskItemRemove}/>
         </div>
     );
 };
